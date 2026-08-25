@@ -4,11 +4,11 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRequisitoController;
 
-
+/*
 Route::get('/', function () {
     return view('welcome');
 });
-
+*/
 
 //User routes
 Route::prefix('user')->group(function () {
