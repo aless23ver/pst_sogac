@@ -1,24 +1,21 @@
 <?php
 
-use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRequisitoController;
+use App\Http\Controllers\AdminDashboardController;
 
-use App\Http\Controllers\PreguntasFrecuentesController;
-
-// Asumimos que tienes un middleware 'auth' (usuario logueado) 
-// y uno 'admin' (que verifica el rol)
-
-Route::middleware(['auth', 'admin'])->group(function () {
+// Grupo protegido para el Admin
+Route::prefix('admin')->group(function () {
     
-    Route::get('/admin', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-    
-    // Ruta para aprobar/rechazar
-    Route::get('/admin/solicitudes/{solicitud}/{accion}', [AdminDashboardController::class, 'cambiarEstado'])->name('admin.solicitudes.estado');
+    // Rutas del Dashboard
+    Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/dashboard/estado/{id}/{accion}', [AdminDashboardController::class, 'cambiarEstado'])->name('admin.dashboard.estado');
 
-    // Esta sola línea crea TODAS las rutas para Crear, Leer, Actualizar y Eliminar
-    Route::resource('admin/requisitos', AdminRequisitoController::class)->names('admin.requisitos');
+    // Rutas de Requisitos (Laravel mapea todo el CRUD automáticamente)
+    Route::resource('requisitos', AdminRequisitoController::class)->names('admin.requisitos');
 });
 
+
+use App\Http\Controllers\PreguntasFrecuentesController;
 
 Route::resource('soporte', PreguntasFrecuentesController::class);
 

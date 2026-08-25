@@ -7,58 +7,61 @@ use Illuminate\Http\Request;
 
 class AdminRequisitoController extends Controller
 {
-    // MOSTRAR EL LISTADO (Leer)
+    // Mostrar todos los requisitos (Equivale a $_GET['action'] == 'listar')
     public function index()
     {
-        $requisitos = Requisito::orderBy('nombre_tramite', 'asc')->get();
+        // Eloquent hace el "SELECT * ORDER BY" automáticamente
+        $requisitos = Requisito::orderBy('req_nombre_requisito', 'ASC')->get();
+        
+        // Retornamos la vista (HTML) y le pasamos la variable
         return view('admin.requisitos.index', compact('requisitos'));
     }
 
-    // MOSTRAR FORMULARIO DE CREAR
-    public function create()
-    {
-        return view('admin.requisitos.form', ['requisito' => new Requisito()]);
-    }
-
-    // GUARDAR EL NUEVO REQUISITO EN LA BD (Crear)
+    // Guardar un requisito nuevo (Equivale al bloque INSERT del POST)
     public function store(Request $request)
     {
-        // Validamos. Fíjate cómo validamos que el nombre sea único en la tabla
+        // Laravel valida los campos por ti, sin usar if ($nombre === '')
         $request->validate([
-            'nombre_tramite' => 'required|unique:requisitos,nombre_tramite',
-            'documentos_necesarios' => 'required'
-        ], [
-            'nombre_tramite.unique' => 'Ese tipo de trámite ya existe en el sistema.'
+            'nombre_tramite' => 'required|string',
+            'documentos_necesarios' => 'required|string',
         ]);
 
-        Requisito::create($request->all());
-
-        return redirect()->route('admin.requisitos.index')->with('success', '¡Trámite y requisitos agregados con éxito!');
-    }
-
-    // MOSTRAR FORMULARIO DE EDITAR
-    public function edit(Requisito $requisito)
-    {
-        return view('admin.requisitos.form', compact('requisito'));
-    }
-
-    // ACTUALIZAR EN LA BD (Actualizar)
-    public function update(Request $request, Requisito $requisito)
-    {
-        $request->validate([
-            'nombre_tramite' => 'required|unique:requisitos,nombre_tramite,' . $requisito->id,
-            'documentos_necesarios' => 'required'
+        // Insertamos en la BD mapeando los inputs a tus columnas personalizadas
+        Requisito::create([
+            'req_nombre_requisito' => $request->nombre_tramite,
+            'req_descripcion' => $request->documentos_necesarios,
         ]);
 
-        $requisito->update($request->all());
-
-        return redirect()->route('admin.requisitos.index')->with('success', '¡Requisitos actualizados con éxito!');
+        return redirect()->route('admin.requisitos.index')
+                         ->with('success', '¡Trámite y requisitos agregados con éxito!');
     }
 
-    // ELIMINAR DE LA BD (Eliminar)
-    public function destroy(Requisito $requisito)
+    // Actualizar un requisito (Equivale al bloque UPDATE del POST)
+    public function update(Request $request, $id)
     {
+        $request->validate([
+            'nombre_tramite' => 'required|string',
+            'documentos_necesarios' => 'required|string',
+        ]);
+
+        // Buscamos por tu Primary Key (req_id) y actualizamos
+        $requisito = Requisito::findOrFail($id);
+        $requisito->update([
+            'req_nombre_requisito' => $request->nombre_tramite,
+            'req_descripcion' => $request->documentos_necesarios,
+        ]);
+
+        return redirect()->route('admin.requisitos.index')
+                         ->with('success', '¡Requisitos actualizados con éxito!');
+    }
+
+    // Eliminar un requisito (Equivale a $_GET['action'] == 'eliminar')
+    public function destroy($id)
+    {
+        $requisito = Requisito::findOrFail($id);
         $requisito->delete();
-        return redirect()->route('admin.requisitos.index')->with('success', 'Trámite eliminado correctamente.');
+
+        return redirect()->route('admin.requisitos.index')
+                         ->with('success', 'Trámite eliminado correctamente.');
     }
 }
