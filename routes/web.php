@@ -1,23 +1,36 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRequisitoController;
+
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 
-// Asumimos que tienes un middleware 'auth' (usuario logueado) 
-// y uno 'admin' (que verifica el rol)
+//User routes
+Route::prefix('user')->group(function () {
 
-Route::middleware(['auth', 'admin'])->group(function () {
+    Route::get('/', function () {
+        return view('user.usrDashboard');
+    });
+
+    Route::get('/dateTemplate', function () {
+        return view('user.dateTemplate'); });
+});
+
+
+
+//Admin routes
+Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     
     Route::get('/admin', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
     
     // Ruta para aprobar/rechazar
-    Route::get('/admin/solicitudes/{solicitud}/{accion}', [AdminDashboardController::class, 'cambiarEstado'])->name('admin.solicitudes.estado');
+    Route::get('/solicitudes/{solicitud}/{accion}', [AdminDashboardController::class, 'cambiarEstado'])->name('admin.solicitudes.estado');
 
     // Esta sola línea crea TODAS las rutas para Crear, Leer, Actualizar y Eliminar
-    Route::resource('admin/requisitos', AdminRequisitoController::class)->names('admin.requisitos');
+    Route::resource('requisitos', AdminRequisitoController::class)->names('admin.requisitos');
 });
