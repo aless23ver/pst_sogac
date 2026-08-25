@@ -7,11 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 class Requisito extends Model
 {
     protected $table = 'requisitos';
-    
-    // Los campos que permitimos llenar desde el formulario
-    protected $fillable = ['nombre_tramite', 'documentos_necesarios'];
+    protected $primaryKey = 'req_id';
+    public $timestamps = false;
 
-    // NOTA: Si tu tabla original no tiene las columnas 'created_at' y 'updated_at', 
-    // debes descomentar la siguiente línea para que Laravel no intente buscarlas:
-    // public $timestamps = false;
+    protected $fillable = [
+        'req_nombre_requisito', 
+        'req_descripcion', 
+        'req_formato_esperado'
+    ];
+    // Un Requisito pertenece a muchos Tipos de Solicitudes (Muchos a Muchos)
+    public function tiposSolicitud()
+    {
+        return $this->belongsToMany(TipoSolicitud::class, 'tipo_solicitud_requisitos', 'tsr_req_id', 'tsr_tsi_id')
+                    ->withPivot('tsr_es_obligatorio'); // Traemos el campo extra de la tabla pivote
+    }
 }

@@ -3,39 +3,58 @@
 namespace App\Http\Controllers;
 
 use App\Models\Solicitud;
+use App\Models\EstadoSolicitud;
+use App\Models\HistorialEstadoSolicitud; // ¡Bonus para tu proyecto!
 use Illuminate\Http\Request;
 
 class AdminDashboardController extends Controller
 {
+    // Mostrar estadísticas y tabla (Equivale a los SELECT del inicio)
     public function index()
     {
-        // Obtener estadísticas usando Eloquent
+        // Traemos las solicitudes con sus relaciones (Eager Loading para evitar el N+1 y los JOINs manuales)
+        $solicitudes = Solicitud::with(['usuario', 'tipoSolicitud', 'estadoActual'])
+                                ->orderBy('sol_fecha_creacion', 'DESC')
+                                ->get();
+
+        // Calculamos las estadísticas directamente desde la colección de Laravel
         $stats = [
-            'pendiente' => Solicitud::where('estado', 'pendiente')->count(),
-            'aprobada'  => Solicitud::where('estado', 'aprobada')->count(),
-            'rechazada' => Solicitud::where('estado', 'rechazada')->count(),
+            'pendiente' => $solicitudes->where('estadoActual.eso_nombre_estado', 'pendiente')->count(),
+            'aprobada'  => $solicitudes->where('estadoActual.eso_nombre_estado', 'aprobada')->count(),
+            'rechazada' => $solicitudes->where('estadoActual.eso_nombre_estado', 'rechazada')->count(),
+            'total'     => $solicitudes->count(),
         ];
-        $total = array_sum($stats);
 
-        // Obtener solicitudes junto con los datos del usuario asociado (Eager Loading para reemplazar el JOIN)
-        $solicitudes = Solicitud::with('usuario')->orderBy('creado_en', 'desc')->get();
-
-        return view('admin.dashboard', compact('stats', 'total', 'solicitudes'));
+        return view('admin.dashboard', compact('solicitudes', 'stats'));
     }
 
-    public function cambiarEstado(Solicitud $solicitud, $accion)
+    // Cambiar estado (Equivale a action=aprobar o action=rechazar)
+    public function cambiarEstado($id, $accion)
     {
-        if ($accion === 'aprobar') {
-            $solicitud->update(['estado' => 'aprobada']);
-            $mensaje = 'La solicitud ha sido aprobada con éxito.';
-        } elseif ($accion === 'rechazar') {
-            $solicitud->update(['estado' => 'rechazada']);
-            $mensaje = 'La solicitud ha sido rechazada.';
-        } else {
-            return redirect()->route('admin.dashboard');
-        }
+        // $accion puede ser 'aprobar' o 'rechazar'
+        $solicitud = Solicitud::findOrFail($id);
+        
+        // 1. Buscamos el ID del estado destino en la tabla estado_solicitudes
+        $nombreEstado = ($accion === 'aprobar') ? 'aprobada' : 'rechazada';
+        $estadoNuevo = EstadoSolicitud::where('eso_nombre_estado', $nombreEstado)->firstOrFail();
 
-        // Redirigimos de vuelta enviando un mensaje de éxito temporal a la sesión (Flash Data)
+        // Bonus: Guardar el historial antes de cambiarlo (Opcional pero recomendado para tu sistema)
+        HistorialEstadoSolicitud::create([
+            'hes_sol_id' => $solicitud->sol_id,
+            'hes_usu_id_responsable' => auth()->user()->usu_id ?? 1, // ID del admin autenticado
+            'hes_eso_id_anterior' => $solicitud->sol_eso_id,
+            'hes_eso_id_nuevo' => $estadoNuevo->eso_id,
+        ]);
+
+        // 2. Actualizamos la solicitud con el nuevo ID de estado
+        $solicitud->update([
+            'sol_eso_id' => $estadoNuevo->eso_id
+        ]);
+
+        $mensaje = ($accion === 'aprobar') 
+            ? 'La solicitud ha sido aprobada con éxito.' 
+            : 'La solicitud ha sido rechazada.';
+
         return redirect()->route('admin.dashboard')->with('success', $mensaje);
     }
 }

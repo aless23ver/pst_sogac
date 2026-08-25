@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('tipo_solicitudes', function (Blueprint $table) {
+            $table->increments('tsi_id');
+            $table->string('tsi_nombre_tipo', 100);
+            $table->text('tsi_descripcion')->nullable();
+            $table->integer('tsi_tiempo_estimado_dias')->nullable();
+            $table->boolean('tsi_requiere_aprobacion_especial')->default(false);
+            $table->string('tsi_estado_tipo', 20);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('tipo_solicitudes');
+    }
+};
