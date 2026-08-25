@@ -3,7 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRequisitoController;
-use App\Http\Controllers\AdminDashboardController;
 
 // Grupo protegido para el Admin
 Route::prefix('admin')->group(function () {
