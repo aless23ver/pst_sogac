@@ -106,12 +106,45 @@ class SoporteService
     {
         $query = HiloChat::where('hch_estado', 'cerrado')->orderBy('updated_at', 'desc');
 
-        if ($usuario->usu_es_admin) {
+        if ($usuario->usu_rol === 'admin') {
             return $query->with(['usuario', 'admin'])->paginate($porPagina);
         }
 
         return $query->with(['admin'])
                      ->where('hch_id_usuario', $usuario->usu_id)
                      ->paginate($porPagina);
+    }
+
+    public function obtenerEstadoBandejaSoporte($usuario)
+    {
+        $estado = [
+            'hilosPendientes' => collect(),
+            'hilosActivosAdmin' => collect(),
+            'hiloActivo' => null,
+        ];
+
+        if ($usuario->usu_rol === 'admin') {
+            $estado['hilosPendientes'] = HiloChat::with('usuario')
+                ->where('hch_estado', 'pendiente')
+                ->orderBy('created_at', 'asc')
+                ->get();
+
+            $estado['hilosActivosAdmin'] = HiloChat::with('usuario')
+                ->where('hch_id_admin', $usuario->usu_id)
+                ->whereIn('hch_estado', ['activo', 'pendiente_cierre'])
+                ->orderBy('updated_at', 'desc')
+                ->get();
+        } else {
+            $estado['hiloActivo'] = HiloChat::where('hch_id_usuario', $usuario->usu_id)
+                ->whereIn('hch_estado', ['pendiente', 'activo', 'pendiente_cierre'])
+                ->first();
+        }
+
+        return $estado;
+    }
+
+    public function obtenerChatConMensajes($hiloId)
+    {
+        return HiloChat::with(['mensajes.remitente', 'usuario', 'admin'])->findOrFail($hiloId);
     }
 }

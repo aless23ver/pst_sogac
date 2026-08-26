@@ -22,8 +22,10 @@
         {{-- Solo diseño: Nombre estático por ahora --}}
         <span class="nav__user">Admin: Nombre de Prueba</span>
         
-        {{-- Solo diseño: Botón estático que no hace peticiones POST todavía --}}
-        <a href="#" class="btn btn--ghost">Salir</a>
+        <form action="{{ route('logout') }}" method="POST" style="display: inline;">
+          @csrf
+          <button type="submit" class="btn btn--ghost">Salir</button>
+        </form>
       </nav>
     </div>
   </header>

@@ -2,10 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 
-class Usuario extends Model
+class Usuario extends Authenticatable
 {
+    use Notifiable;
     protected $table = 'usuarios';
     protected $primaryKey = 'usu_id';
     public $timestamps = false;
@@ -48,5 +50,16 @@ class Usuario extends Model
     public function historialesModificados()
     {
         return $this->hasMany(HistorialEstadoSolicitud::class, 'hes_usu_id_responsable', 'usu_id');
+    }
+    // ¡CRUCIAL! Le decimos a Laravel qué columna guarda la contraseña encriptada
+    public function getAuthPassword()
+    {
+        return $this->usu_contrasena_hash;
+    }
+
+    // Le decimos a Laravel cuál es tu clave primaria personalizada
+    public function getAuthIdentifierName()
+    {
+        return 'usu_id';
     }
 }

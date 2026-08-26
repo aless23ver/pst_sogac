@@ -14,32 +14,54 @@ Route::prefix('admin')->group(function () {
     Route::resource('requisitos', AdminRequisitoController::class)->names('admin.requisitos');
 });
 
+// TEMPORAL? VVV
 
+use App\Http\Controllers\SoporteController;
+
+// Protegemos todas las rutas de chat para que requieran sesión iniciada
+Route::middleware(['auth'])->group(function () {
+    
+    // Rutas compartidas (Las usan tanto usuarios como admins)
+    Route::get('/soporte/chat/{id}', [SoporteController::class, 'mostrarChat'])->name('chat.mostrar');
+    Route::post('/soporte/chat/{id}/mensaje', [SoporteController::class, 'enviarMensaje'])->name('chat.enviar');
+    Route::get('/soporte/historial', [SoporteController::class, 'verHistorial'])->name('chat.historial');
+
+    // Rutas exclusivas del Usuario (Estudiante)
+    Route::post('/soporte/iniciar', [SoporteController::class, 'iniciarChat'])->name('chat.iniciar');
+    Route::post('/soporte/chat/{id}/confirmar', [SoporteController::class, 'confirmarCierre'])->name('chat.confirmar');
+    Route::post('/soporte/chat/{id}/rechazar', [SoporteController::class, 'desconfirmarCierre'])->name('chat.rechazar');
+
+    // Rutas exclusivas del Admin
+    Route::post('/soporte/chat/{id}/reclamar', [SoporteController::class, 'reclamarChat'])->name('chat.reclamar');
+    Route::post('/soporte/chat/{id}/proponer-cierre', [SoporteController::class, 'proponerCierre'])->name('chat.proponer_cierre');
+    
+});
+// TEMPORAL? ^^^
 use App\Http\Controllers\PreguntasFrecuentesController;
 
 Route::resource('soporte', PreguntasFrecuentesController::class);
+// LOGIN
+use App\Http\Controllers\LoginController;
+
+Route::get('/login', [LoginController::class, 'mostrarFormulario'])->name('login');
+Route::post('/login', [LoginController::class, 'procesarLogin'])->name('login.post');
+Route::post('/logout', [LoginController::class, 'cerrarSesion'])->name('logout');
+
+use App\Http\Controllers\RegisterController;
+
+// Rutas de Registro
+Route::get('/register', [RegisterController::class, 'mostrarFormulario'])->name('register');
+Route::post('/register', [RegisterController::class, 'registrar'])->name('register.post');
+// LOGIN
 
 
-// TEMPORAL VVV
+//LOGOUT RAPIDO DE DEPURACION
+use Illuminate\Support\Facades\Auth;
 
-Route::get('/prueba-chat-usuario', function () {
-    // Simulamos un hilo en estado 'pendiente_cierre' para ver todos los botones
-    $hilo = (object) [
-        'hch_id' => 1,
-        'hch_estado' => 'pendiente_cierre',
-        'hch_etiqueta_tema' => null
-    ];
-    return view('soporte\chat_usuario', compact('hilo'));
+Route::get('/salir-rapido', function () {
+    Auth::logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/login');
 });
-
-Route::get('/prueba-chat-admin', function () {
-    // Simulamos un hilo en estado 'activo' para ver el formulario de cierre
-    $hilo = (object) [
-        'hch_id' => 1,
-        'hch_estado' => 'activo',
-    ];
-    return view('soporte\chat_admin', compact('hilo'));
-});
-
-// TEMPORAL ^^^
-
+//LOGOUT RAPIDO DE DEPURACION
