@@ -72,6 +72,10 @@ class PreguntasFrecuentesController extends Controller
      */
     public function destroy(string $id)
     {
+        // Si no es admin, lo pateamos con un error 403 (Acceso Denegado)
+        if (auth()->user()->usu_rol !== 'admin') {
+            abort(403, 'No tienes permiso para eliminar preguntas.');
+        }
         // 1. Enviamos la orden de eliminar al servicio
         $this->service->delete((int)$id);
 

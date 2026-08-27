@@ -17,7 +17,7 @@ Route::prefix('user')->group(function () {
     Route::get('/', function () {
         return view('user.dashboard');
     });
-        });
+});
 
 // Grupo protegido para el Admin
 Route::prefix('admin')->group(function () {
@@ -31,6 +31,19 @@ Route::prefix('admin')->group(function () {
 });
 
 Route::resource('soporte', PreguntasFrecuentesController::class);
+// LOGIN
+use App\Http\Controllers\LoginController;
+
+Route::get('/login', [LoginController::class, 'mostrarFormulario'])->name('login');
+Route::post('/login', [LoginController::class, 'procesarLogin'])->name('login.post');
+Route::post('/logout', [LoginController::class, 'cerrarSesion'])->name('logout');
+
+use App\Http\Controllers\RegisterController;
+
+// Rutas de Registro
+Route::get('/register', [RegisterController::class, 'mostrarFormulario'])->name('register');
+Route::post('/register', [RegisterController::class, 'registrar'])->name('register.post');
+// LOGIN
 
 
 // TEMPORAL VVV
@@ -43,6 +56,10 @@ Route::get('/prueba-chat-usuario', function () {
     ];
     return view('soporte\chat_usuario', compact('hilo'));
 });
+//LOGOUT RAPIDO DE DEPURACION
+
+
+
 
 Route::get('/prueba-chat-admin', function () {
     // Simulamos un hilo en estado 'activo' para ver el formulario de cierre
