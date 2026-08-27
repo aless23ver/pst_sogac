@@ -3,7 +3,21 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRequisitoController;
-use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\PreguntasFrecuentesController;
+use App\Http\Controllers\UserSolicitudController;
+
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+//User routes
+Route::prefix('user')->group(function () {
+
+    Route::get('/', function () {
+        return view('user.dashboard');
+    });
+        });
 
 // Grupo protegido para el Admin
 Route::prefix('admin')->group(function () {
@@ -16,14 +30,10 @@ Route::prefix('admin')->group(function () {
     Route::resource('requisitos', AdminRequisitoController::class)->names('admin.requisitos');
 });
 
-
-use App\Http\Controllers\PreguntasFrecuentesController;
-
 Route::resource('soporte', PreguntasFrecuentesController::class);
 
 
 // TEMPORAL VVV
-
 Route::get('/prueba-chat-usuario', function () {
     // Simulamos un hilo en estado 'pendiente_cierre' para ver todos los botones
     $hilo = (object) [
@@ -44,34 +54,3 @@ Route::get('/prueba-chat-admin', function () {
 });
 
 // TEMPORAL ^^^
-
-/*
-Route::get('/', function () {
-    return view('welcome');
-});
-*/
-
-//User routes
-Route::prefix('user')->group(function () {
-
-    Route::get('/', function () {
-        return view('user.usrDashboard');
-    });
-
-    Route::get('/dateTemplate', function () {
-        return view('user.dateTemplate'); });
-});
-
-
-
-//Admin routes
-Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
-    
-    Route::get('/admin', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-    
-    // Ruta para aprobar/rechazar
-    Route::get('/solicitudes/{solicitud}/{accion}', [AdminDashboardController::class, 'cambiarEstado'])->name('admin.solicitudes.estado');
-
-    // Esta sola línea crea TODAS las rutas para Crear, Leer, Actualizar y Eliminar
-    Route::resource('requisitos', AdminRequisitoController::class)->names('admin.requisitos');
-});

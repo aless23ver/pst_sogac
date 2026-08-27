@@ -21,7 +21,7 @@ class Usuario extends Model
         'usu_correo_electronico', 
         'usu_numero_telefono', 
         'usu_contrasena_hash', 
-        'usu_estado_cuenta', 
+        'usu_estado_cuenta',
         'usu_fecha_registro', 
         'usu_ultimo_acceso'
     ];
