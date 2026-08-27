@@ -104,18 +104,26 @@ class SoporteController extends Controller
 
     public function verHistorial() 
     {
-        $hilos = $this->soporteService->obtenerHistorialPaginado(Auth::user());
-        return view('chat.historial', compact('hilos'));
+        $usuario = Auth::user();
+        
+        $hilos = $this->soporteService->obtenerHistorialPaginado($usuario);
+        $estadoDashboard = $this->soporteService->obtenerEstadoBandejaSoporte($usuario);
+
+        return view('soporte.historial', array_merge(['hilos' => $hilos], $estadoDashboard));
     }
 
     public function mostrarChat($hch_id)
     {
-        $hilo = HiloChat::with(['mensajes.remitente', 'usuario', 'admin'])->findOrFail($hch_id);
+        $hilo = $this->soporteService->obtenerChatConMensajes($hch_id);
+        
+        $esAdmin = Auth::user()->usu_rol === 'admin';
 
-        if (!Auth::user()->usu_es_admin && $hilo->hch_id_usuario !== Auth::id()) {
+        if (!$esAdmin && $hilo->hch_id_usuario !== Auth::id()) {
             abort(403, 'No tienes permiso para ver este chat.');
         }
 
-        return view('chat.mostrar', compact('hilo'));
+        return $esAdmin 
+            ? view('soporte.chat_admin', compact('hilo')) 
+            : view('soporte.chat_usuario', compact('hilo'));
     }
 }

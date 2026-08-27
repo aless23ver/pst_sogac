@@ -5,18 +5,21 @@
 @section('content')
 <div class="container main">
     
-    <!-- Barra de Herramientas -->
-    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 20px;">
-        <button onclick="document.getElementById('modalCrear').style.display='block'" class="btn btn--primary btn--sm" style="background: var(--red);">
-            Añadir
-        </button>
-        <button id="btnModoEditar" onclick="activarModo('editar')" class="btn btn--dark btn--sm">
-            Editar
-        </button>
-        <button id="btnModoEliminar" onclick="activarModo('eliminar')" class="btn btn--ghost btn--sm" style="color: var(--black); border-color: var(--gray-400);">
-            Eliminar
-        </button>
-    </div>
+    <!-- Validamos que haya un usuario logueado Y que su rol sea admin -->
+    @if(auth()->check() && auth()->user()->usu_rol === 'admin')
+        <!-- Barra de Herramientas -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 20px;">
+            <button onclick="document.getElementById('modalCrear').style.display='block'" class="btn btn--primary btn--sm" style="background: var(--red);">
+                Añadir
+            </button>
+            <button id="btnModoEditar" onclick="activarModo('editar')" class="btn btn--dark btn--sm">
+                Editar
+            </button>
+            <button id="btnModoEliminar" onclick="activarModo('eliminar')" class="btn btn--ghost btn--sm" style="color: var(--black); border-color: var(--gray-400);">
+                Eliminar
+            </button>
+        </div>
+    @endif
 
     <!-- Mensaje dinámico -->
     <div id="barraEstado" class="alert alert--pendiente" style="display: none; text-align: center; font-weight: bold; transition: all 0.3s ease;">
