@@ -1,23 +1,24 @@
 <?php
 
+use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminDashboardController;
 use App\Http\Controllers\AdminRequisitoController;
 use App\Http\Controllers\PreguntasFrecuentesController;
-use App\Http\Controllers\UserSolicitudController;
 
 
 Route::get('/', function () {
-    return view('welcome');
+    Inertia::render('app');
 });
 
 //User routes
 Route::prefix('user')->group(function () {
 
-    Route::get('/', function () {
-        return view('user.dashboard');
-    });
+    Route::get('/dashboard', function () {
+        return Inertia::render('user/dashboard');
+    })->name('user.dashboard');
 });
+
 
 // Grupo protegido para el Admin
 Route::prefix('admin')->group(function () {
@@ -57,8 +58,6 @@ Route::get('/prueba-chat-usuario', function () {
     return view('soporte\chat_usuario', compact('hilo'));
 });
 //LOGOUT RAPIDO DE DEPURACION
-
-
 
 
 Route::get('/prueba-chat-admin', function () {

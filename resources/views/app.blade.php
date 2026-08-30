@@ -3,19 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bienvenido a SOGAC</title>
-    
+    <title>Solicitudes UPTP</title>
     <!-- Este es el puente que conecta tu vista con Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @inertiaHead
 </head>
 <body>
-    <h1>¡Hola! El sistema SOGAC está funcionando.</h1>
-</body>
-</html>
-
-
-
-
-</main>
+    @inertia
 </body>
 </html>
