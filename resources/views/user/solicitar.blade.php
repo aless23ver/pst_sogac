@@ -50,6 +50,48 @@
   @endif
 </div>
 
+{{-- Datos de precarga: se adjuntan solos a la solicitud. El aviso empuja a
+     completarlos ANTES de enviar, para que el trámite no llegue con huecos
+     ni con datos que ya vencieron según la vigencia del administrador. --}}
+@if ($faltanObligatorios->isNotEmpty() || $precargaVencida)
+  <div class="alert alert--warning" style="margin-top: 20px;">
+    <strong>Antes de enviar:</strong>
+    @if ($faltanObligatorios->isNotEmpty())
+      te falta cargar {{ $faltanObligatorios->count() === 1 ? 'un dato' : $faltanObligatorios->count().' datos' }} obligatorio(s):
+      {{ $faltanObligatorios->pluck('dpc_etiqueta')->implode(', ') }}.
+    @endif
+    @if ($faltanObligatorios->isNotEmpty() && $precargaVencida)
+      Además, tus
+    @elseif ($precargaVencida)
+      Tus
+    @endif
+    @if ($precargaVencida)
+      datos de precarga perdieron vigencia y conviene refrescarlos.
+    @endif
+    <br>
+    Complétalos en <a href="{{ route('user.datos-perfil') }}">Mis datos</a> y vuelve a esta pantalla:
+    el formulario los recordará.
+  </div>
+@endif
+
+<div class="card" style="margin-top: 20px;">
+  <h2 class="card__title">Tus datos que se adjuntarán</h2>
+
+  @if (collect($datosPrecarga)->filter(fn ($valor) => $valor !== null && $valor !== '')->isEmpty())
+    <p class="card__sub" style="margin-top: 10px;">
+      Todavía no has cargado tus datos de precarga.
+      <a href="{{ route('user.datos-perfil') }}">Cárgalos aquí</a> y se adjuntarán automáticamente a tus solicitudes.
+    </p>
+  @else
+    <p class="card__sub" style="margin-top: 10px;">
+      Viene de <a href="{{ route('user.datos-perfil') }}">Mis datos</a>: si algo cambió, actualízalo allí.
+    </p>
+    <dl class="datos" style="margin-top: 14px;">
+      @include('partials.datos-resumen', ['datos' => $datosPrecarga, 'campos' => $camposPrecarga])
+    </dl>
+  @endif
+</div>
+
 <form action="{{ route('user.tramites.store', $tramite->tsi_id) }}" method="POST" class="card" style="margin-top: 20px;">
   @csrf
 

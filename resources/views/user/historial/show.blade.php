@@ -110,22 +110,54 @@
             </div>
         </section>
 
-        {{-- Adjuntos y cita de validación física --}}
+        {{-- Adjuntos y cita de validación física.
+
+             El aviso de arriba resume el estado de los adjuntos: si ya hay
+             documentos validados no hace falta volver a cargarlos; si hay
+             pendientes o no hay ninguno, se explica qué esperar. La lista y
+             la cita se muestran SIEMPRE, para que el estudiante sepa qué
+             tiene adjunto y cuándo debe presentarse físicamente. --}}
         <section class="panel">
             <h2 class="panel__title">Adjuntos y cita</h2>
 
-            @if ($solicitud->documentaciones->isEmpty())
+            @php
+                $documentos = $solicitud->documentaciones;
+                $tieneValidados = $documentos->contains(fn ($d) => $d->doc_estado_validacion === 'validada');
+                $tienePendientes = $documentos->isNotEmpty() && ! $tieneValidados;
+            @endphp
+
+            @if ($tieneValidados)
+                <div class="alert alert--success" style="margin-bottom: 16px;">
+                    Tus documentos ya están validados: no necesitas cargarlos de nuevo.
+                    Si alguno venció, la oficina de admisiones te citará para revalidarlo.
+                </div>
+            @elseif ($tienePendientes)
+                <div class="alert alert--warning" style="margin-bottom: 16px;">
+                    Tienes {{ $documentos->count() }} documento(s) adjunto(s) pendiente(s) de validación.
+                    El personal los revisa en el orden en que llegaron; este aviso desaparece al validarse.
+                </div>
+            @else
+                <div class="alert alert--info" style="margin-bottom: 16px;">
+                    Esta solicitud todavía no tiene documentos adjuntos. Si el trámite los requiere,
+                    la oficina de admisiones te indicará cómo entregarlos.
+                </div>
+            @endif
+
+            @if ($documentos->isEmpty())
                 <p class="estado-vacio" style="padding: 12px 0; text-align: left;">
                     No hay documentos adjuntos a esta solicitud.
                 </p>
             @else
                 <ul class="lista-simple">
-                    @foreach ($solicitud->documentaciones as $documento)
+                    @foreach ($documentos as $documento)
                         <li>
                             <span class="lista-simple__titulo">{{ $documento->doc_nombre_original_archivo }}</span>
                             <span class="lista-simple__detalle">
                                 {{ strtoupper((string) $documento->doc_formato_archivo) }}
-                                &middot; {{ $documento->doc_estado_validacion }}
+                                &middot;
+                                <span class="chip {{ $documento->doc_estado_validacion === 'validada' ? 'chip--ok' : 'chip--neutro' }}">
+                                    {{ $documento->doc_estado_validacion }}
+                                </span>
                                 @if ($documento->doc_fecha_subida)
                                     &middot; {{ Carbon::parse($documento->doc_fecha_subida)->format('d/m/Y') }}
                                 @endif

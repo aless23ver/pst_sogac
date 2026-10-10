@@ -128,6 +128,35 @@
                 ['ruta' => 'admin.usuarios.index', 'texto' => 'Gestionar usuarios', 'patrones' => ['admin.usuarios.*']],
             ],
         ],
+        // Datos de precarga del estudiante: el admin define qué campos se
+        // piden en el perfil (y su vigencia) y revisa qué tiene cargado cada
+        // estudiante. Las dos pantallas son la misma labor: mantener al día
+        // los datos que se adjuntan a los trámites.
+        [
+            'ambito' => 'admin',
+            'titulo' => 'Datos de precarga',
+            'visible' => $usuario?->esAdministrador(),
+            'funciones' => [
+                [
+                    'ruta' => 'admin.datos-precarga.index',
+                    'texto' => 'Configurar campos',
+                    'patrones' => [
+                        'admin.datos-precarga.index',
+                        'admin.datos-precarga.update',
+                    ],
+                ],
+                [
+                    'ruta' => 'admin.datos-precarga.create',
+                    'texto' => 'Agregar campo',
+                    'patrones' => ['admin.datos-precarga.create'],
+                ],
+                [
+                    'ruta' => 'admin.datos-estudiantes.index',
+                    'texto' => 'Datos de estudiantes',
+                    'patrones' => ['admin.datos-estudiantes.*'],
+                ],
+            ],
+        ],
         // Ayuda del administrador: las dos pantallas con las que se atiende al
         // estudiante que escribe. Antes cada una era un modulo suelto (Preguntas
         // frecuentes aqui y Chats al final de la lista), asi que quedaban
@@ -174,6 +203,7 @@
             'titulo' => 'Mi panel',
             'funciones' => [
                 ['ruta' => 'dashboard', 'texto' => 'Resumen', 'patrones' => ['dashboard']],
+                ['ruta' => 'user.datos-perfil', 'texto' => 'Datos Personales', 'patrones' => ['user.datos-perfil']],
             ],
         ],
         [

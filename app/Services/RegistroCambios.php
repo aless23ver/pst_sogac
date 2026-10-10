@@ -119,6 +119,26 @@ class RegistroCambios
             'hch_etiqueta_tema' => 'Tema',
             'hch_fecha_solicitud_cierre' => 'Fecha de solicitud de cierre',
         ],
+        'Usuario' => [
+            'usu_primer_nombre' => 'Primer nombre',
+            'usu_segundo_nombre' => 'Segundo nombre',
+            'usu_primer_apellido' => 'Primer apellido',
+            'usu_segundo_apellido' => 'Segundo apellido',
+            'usu_correo_electronico' => 'Correo electrónico',
+            'usu_numero_telefono' => 'Teléfono',
+            'usu_direccion' => 'Dirección',
+            'usu_lugar_nacimiento' => 'Lugar de nacimiento',
+            'usu_fecha_nacimiento' => 'Fecha de nacimiento',
+            'usu_lapso_academico_previo' => 'Último lapso académico aprobado',
+            'usu_datos_ultima_actualizacion' => 'Última actualización de datos',
+        ],
+        'DatosPrecargaConfig' => [
+            'dpc_campo' => 'Campo',
+            'dpc_etiqueta' => 'Etiqueta',
+            'dpc_obligatorio' => 'Obligatorio',
+            'dpc_activo' => 'Habilitado',
+            'dpc_vigencia_meses' => 'Vigencia (meses)',
+        ],
     ];
 
     /**

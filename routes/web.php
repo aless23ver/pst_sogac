@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminDatosEstudiantesController;
+use App\Http\Controllers\AdminDatosPrecargaController;
 use App\Http\Controllers\AdminEstadisticasController;
 use App\Http\Controllers\AdminHistorialCambioController;
 use App\Http\Controllers\AdminPreguntaFrecuenteController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SoporteController;
+use App\Http\Controllers\UserDatosPerfilController;
 use App\Http\Controllers\UserSolicitudController;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +46,9 @@ Route::post('/logout', [LoginController::class, 'cerrarSesion'])->name('logout')
 Route::middleware('auth')->prefix('user')->group(function () {
     Route::get('/dashboard', [UserSolicitudController::class, 'index'])->name('dashboard');
     Route::get('/citas', [UserSolicitudController::class, 'misCitas'])->name('user.citas');
+
+    Route::get('/datos-perfil', [UserDatosPerfilController::class, 'index'])->name('user.datos-perfil');
+    Route::post('/datos-perfil', [UserDatosPerfilController::class, 'update'])->name('user.datos-perfil.update');
 
     Route::get('/tramites', [UserSolicitudController::class, 'listarTramites'])->name('user.tramites.index');
 
@@ -142,6 +148,23 @@ Route::middleware('admin')->prefix('admin')->group(function () {
         Route::put('/{usuario}', [AdminUserController::class, 'update'])->name('update');
         Route::post('/{usuario}/desbloquear', [AdminUserController::class, 'unlock'])->name('unlock');
         Route::delete('/{usuario}', [AdminUserController::class, 'destroy'])->name('destroy');
+    });
+
+    // Datos de precarga del estudiante: qué campos se piden (la "versión" que
+    // el admin edita) y qué tiene cargado cada estudiante, con filtros para
+    // ubicar quién está incompleto o desactualizado. Ambos módulos son del
+    // administrador porque afectan la forma en que se reciben los trámites.
+    Route::middleware('rol:administrador')->group(function () {
+        Route::prefix('datos-precarga')->name('admin.datos-precarga.')->group(function () {
+            Route::get('/', [AdminDatosPrecargaController::class, 'index'])->name('index');
+            Route::get('/agregar', [AdminDatosPrecargaController::class, 'create'])->name('create');
+            Route::post('/', [AdminDatosPrecargaController::class, 'store'])->name('store');
+            Route::put('/{config}', [AdminDatosPrecargaController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('datos-estudiantes')->name('admin.datos-estudiantes.')->group(function () {
+            Route::get('/', [AdminDatosEstudiantesController::class, 'index'])->name('index');
+        });
     });
 
     // ---- Los tres roles administrativos ----
