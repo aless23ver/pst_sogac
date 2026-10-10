@@ -23,12 +23,15 @@
     $esAdminOAnalista = $usuario?->esAdministrador() || $usuario?->esAnalista();
 
     // Pendientes del chat, para el contador del menu. El personal tiene
-    // delante las consultas que NADIE ha reclamado todavia; el estudiante, su
-    // propia consulta en curso. Son dos preguntas distintas y por eso dos
-    // consultas distintas, no un unico 'where' con un rol adentro.
+    // delante las consultas que puede ATENDER segun su nivel (un chat
+    // escalado a analista ya no cuenta para el taquillero); el estudiante,
+    // su propia consulta en curso. Son dos preguntas distintas y por eso
+    // dos consultas distintas, no un unico 'where' con un rol adentro.
     $pendientesChat = $usuario
         ? ($usuario->esAdministrativo()
-            ? HiloChat::where('hch_estado', 'pendiente')->count()
+            ? HiloChat::where('hch_estado', 'pendiente')
+                ->where('hch_nivel_atencion', '<=', HiloChat::nivelRequeridoPorRol($usuario->usu_rol))
+                ->count()
             : HiloChat::where('hch_id_usuario', $usuario->usu_id)
                 ->whereIn('hch_estado', ['pendiente', 'activo', 'pendiente_cierre'])
                 ->count())
@@ -128,6 +131,35 @@
                 ['ruta' => 'admin.usuarios.index', 'texto' => 'Gestionar usuarios', 'patrones' => ['admin.usuarios.*']],
             ],
         ],
+        // Datos de precarga del estudiante: el admin define qué campos se
+        // piden en el perfil (y su vigencia) y revisa qué tiene cargado cada
+        // estudiante. Las dos pantallas son la misma labor: mantener al día
+        // los datos que se adjuntan a los trámites.
+        [
+            'ambito' => 'admin',
+            'titulo' => 'Datos de precarga',
+            'visible' => $usuario?->esAdministrador(),
+            'funciones' => [
+                [
+                    'ruta' => 'admin.datos-precarga.index',
+                    'texto' => 'Configurar campos',
+                    'patrones' => [
+                        'admin.datos-precarga.index',
+                        'admin.datos-precarga.update',
+                    ],
+                ],
+                [
+                    'ruta' => 'admin.datos-precarga.create',
+                    'texto' => 'Agregar campo',
+                    'patrones' => ['admin.datos-precarga.create'],
+                ],
+                [
+                    'ruta' => 'admin.datos-estudiantes.index',
+                    'texto' => 'Datos de estudiantes',
+                    'patrones' => ['admin.datos-estudiantes.*'],
+                ],
+            ],
+        ],
         // Ayuda del administrador: las dos pantallas con las que se atiende al
         // estudiante que escribe. Antes cada una era un modulo suelto (Preguntas
         // frecuentes aqui y Chats al final de la lista), asi que quedaban
@@ -174,6 +206,7 @@
             'titulo' => 'Mi panel',
             'funciones' => [
                 ['ruta' => 'dashboard', 'texto' => 'Resumen', 'patrones' => ['dashboard']],
+                ['ruta' => 'user.datos-perfil', 'texto' => 'Datos Personales', 'patrones' => ['user.datos-perfil']],
             ],
         ],
         [

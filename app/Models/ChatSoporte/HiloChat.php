@@ -3,6 +3,7 @@
 namespace App\Models\ChatSoporte;
 
 use App\Models\Concerns\RegistraCambios;
+use App\Models\Rol;
 use App\Models\Usuario;
 use Illuminate\Database\Eloquent\Model;
 
@@ -15,7 +16,7 @@ class HiloChat extends Model
     protected $primaryKey = 'hch_id';
 
     protected $fillable = [
-        'hch_id_usuario', 'hch_id_admin', 'hch_estado', 'hch_etiqueta_tema', 'hch_fecha_solicitud_cierre',
+        'hch_id_usuario', 'hch_id_admin', 'hch_estado', 'hch_nivel_atencion', 'hch_etiqueta_tema', 'hch_fecha_solicitud_cierre',
     ];
 
     /**
@@ -62,7 +63,90 @@ class HiloChat extends Model
             'activo' => 'En atención',
             'pendiente_cierre' => 'Pendiente de confirmación',
             'cerrado' => 'Cerrado',
+            'pending_escalation' => 'Escalando (pendiente aprobación)',
         ];
+    }
+
+    /**
+     * Niveles de atención del chat, alineados con la jerarquía de roles.
+     *
+     * Un chat nace en el nivel 1 (taquillero). Cuando sube, vuelve a la
+     * bandeja y solo puede reclamarlo un rol DEL nivel indicado o superior:
+     * un chat de nivel 2 ya no lo ve el taquillero.
+     *
+     * @var array<int, string>
+     */
+    public const NIVELES_ATENCION = [
+        1 => 'Taquillero',
+        2 => 'Analista',
+        3 => 'Administrador',
+    ];
+
+    /** Nivel máximo al que puede escalar un chat. */
+    public const NIVEL_MAXIMO = 3;
+
+    /** Todos los estados posibles del chat. */
+    public const ESTADOS = [
+        'pendiente' => 'pendiente',
+        'activo' => 'activo',
+        'pendiente_cierre' => 'pendiente_cierre',
+        'cerrado' => 'cerrado',
+        'pending_escalation' => 'pending_escalation',
+    ];
+
+    /**
+     * Nivel mínimo de rol necesario para atender un chat que está en el
+     * nivel indicado.
+     */
+    public static function nivelRequeridoPorRol(string $rol): int
+    {
+        return match ($rol) {
+            Rol::TAQUILLERO => 1,
+            Rol::ANALISTA => 2,
+            Rol::ADMINISTRADOR => 3,
+            default => 1,
+        };
+    }
+
+    /**
+     * Texto del nivel, listo para mostrar ("Analista", "Administrador"...).
+     */
+    public function getNivelEtiquetaAttribute(): string
+    {
+        return self::NIVELES_ATENCION[$this->hch_nivel_atencion] ?? 'Nivel '.$this->hch_nivel_atencion;
+    }
+
+    /**
+     * Si el chat todavía puede subir de nivel (estado normal).
+     */
+    public function puedeEscalar(): bool
+    {
+        return $this->hch_nivel_atencion < self::NIVEL_MAXIMO
+            && $this->hch_estado !== 'pending_escalation';
+    }
+
+    /**
+     * Si el chat está en estado de escalado pendiente de aprobación.
+     */
+    public function estaEnEscaladoPendiente(): bool
+    {
+        return $this->hch_estado === 'pending_escalation';
+    }
+
+    /**
+     * Si el usuario actual puede solicitar el escalado de este chat.
+     * - Estudiantes solo pueden solicitar si su chat está activo/pendiente
+     * - Personal solo si no está ya escalado o cerrado
+     */
+    public function puedeSolicitarEscalarPor(string $rolUsuario): bool
+    {
+        if ($rolUsuario === 'estudiante') {
+            return in_array($this->hch_estado, ['pendiente', 'activo'])
+                && !$this->estaEnEscaladoPendiente();
+        }
+        // Analista o administrador pueden solicitar escalado si no está cerrado
+        return $this->hch_estado !== 'cerrado'
+            && $this->hch_estado !== 'pending_escalation';
     }
 
     /**

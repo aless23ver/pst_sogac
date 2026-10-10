@@ -26,6 +26,11 @@ class DatabaseSeeder extends Seeder
         $this->call(SolicitudesPanelEstadisticasSeeder::class);
         $this->call(PreguntasFrecuentesDemoSeeder::class);
 
+        // Configuración de los datos que el estudiante precarga en su perfil.
+        // Va antes de la bitácora para que los cambios del admin sobre estos
+        // campos también queden reflejados en ella.
+        $this->call(DatosPrecargaConfigSeeder::class);
+
         // Va al final porque reconstruye la bitacora a partir de lo que dejaron
         // los seeders anteriores: necesita solicitudes con historial y catálogo
         // ya cargados.

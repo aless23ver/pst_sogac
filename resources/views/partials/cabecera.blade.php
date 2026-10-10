@@ -14,6 +14,7 @@
       <span class="cinta__texto">
         <strong>UPTP</strong>
         <small>Juan de Jesús Montilla</small>
+        <small>Sede Portuguesa</small>
       </span>
     </a>
 

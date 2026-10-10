@@ -35,6 +35,14 @@
                 <span class="badge-punto__dot"></span>
                 {{ ucfirst($solicitud->estadoActual->eso_nombre_estado) }}
             </span>
+            @if ($siguientePendiente)
+                <a href="{{ route('admin.tratadas.show', $siguientePendiente->sol_id) }}"
+                   class="btn btn--primary btn--sm"
+                   style="margin-left: 8px;"
+                   title="Ir a la siguiente solicitud pendiente de la cola ({{ $siguientePendiente->sol_id_seguimiento }})">
+                    Siguiente pendiente
+                </a>
+            @endif
         </div>
 
         {{-- Datos principales --}}
@@ -43,6 +51,13 @@
                 <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--gray-400); font-weight: 600; letter-spacing: 0.5px;">Estudiante</div>
                 <div style="font-size: 0.95rem; font-weight: 600; margin-top: 2px;">{{ $solicitud->usuario->nombre_completo }}</div>
                 <div style="font-size: 0.8rem; color: var(--gray-500); margin-top: 2px;">{{ $solicitud->usuario->documento_completo }}</div>
+                {{-- Ficha del estudiante: número, carrera y trayecto, para
+                     ubicar al estudiante en las oficinas sin abrir su perfil. --}}
+                <div style="font-size: 0.8rem; color: var(--gray-500); margin-top: 2px;">
+                    Ficha: {{ $solicitud->usuario->numero_ficha }}
+                    · {{ $solicitud->usuario->usu_pnf ?: 'Sin PNF' }}
+                    · {{ $solicitud->usuario->usu_trayecto ?: 'sin trayecto' }}
+                </div>
             </div>
             <div>
                 <div style="font-size: 0.72rem; text-transform: uppercase; color: var(--gray-400); font-weight: 600; letter-spacing: 0.5px;">Trámite</div>

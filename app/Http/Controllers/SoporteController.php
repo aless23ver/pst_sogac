@@ -101,6 +101,108 @@ class SoporteController extends Controller
         }
     }
 
+    /**
+     * Solicita el escalado del chat. Puede pedirlo el estudiante (quiere
+     * hablar con alguien más arriba) o el personal que lo atiende (no puede
+     * resolverlo). El chat queda en estado "pending_escalation" y requiere
+     * aprobación del administrador antes de aplicarse.
+     */
+    public function escalarChat($hch_id)
+    {
+        $usuario = Auth::user();
+
+        try {
+            $hilo = $this->soporteService->escalarChat(
+                $hch_id,
+                $usuario->usu_id,
+                ! $usuario->esAdministrativo(),
+            );
+
+            // Si el chat quedó pendiente de aprobación, redirect al index
+            // con un aviso; si ya fue aplicado, redirige según el rol.
+            if ($hilo->hch_estado === 'pending_escalation') {
+                return redirect()
+                    ->route('admin.chat.index')
+                    ->with('info', 'Solicitud de escalado enviada. El administrador la revisará y aplicará.');
+            }
+
+            // Si el escalado ya se aplicó (estado cambiado), redirige normal.
+            return redirect()->route(
+                $usuario->esAdministrativo() ? 'admin.chat.index' : 'user.ayuda.chat.mostrar',
+                $usuario->esAdministrativo() ? [] : [$hilo->hch_id],
+            )->with('success', 'El chat fue escalado al nivel '.strtolower($hilo->nivel_etiqueta).'.');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Aplica la escalación aprobada por el administrador.
+     */
+    public function aprobarEscalado($hch_id)
+    {
+        if (! Auth::user()->esAdministrador()) {
+            abort(403, 'Solo el administrador puede aprobar el escalado de un chat.');
+        }
+
+        try {
+            $this->soporteService->aprobarEscalado($hch_id, Auth::id());
+
+            return back()->with('success', 'Escalado aprobado. El chat sube un nivel y vuelve a la bandeja correspondiente.');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Rechaza la solicitud de escalado y restaura el chat a su estado anterior.
+     */
+    public function rechazarEscalado(Request $request, $hch_id)
+    {
+        if (! Auth::user()->esAdministrador()) {
+            abort(403, 'Solo el administrador puede rechazar el escalado de un chat.');
+        }
+
+        $request->validate([
+            'motivo' => 'required|string|max:500',
+        ], [
+            'motivo.required' => 'Escribe el motivo por el cual se rechaza el escalado.',
+        ]);
+
+        try {
+            $this->soporteService->rechazarEscalado($hch_id, Auth::id(), trim((string) $request->input('motivo')));
+
+            return back()->with('success', 'Solicitud de escalado rechazada. El chat permanece en su nivel actual.');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Cierre forzado por conducta inadecuada: solo el administrador, con
+     * motivo, sin esperar la confirmación del estudiante.
+     */
+    public function cerrarForzado(Request $request, $hch_id)
+    {
+        $request->validate([
+            'motivo' => 'required|string|max:500',
+        ], [
+            'motivo.required' => 'Escribe el motivo del cierre forzado: queda como constancia en el chat.',
+        ]);
+
+        if (! Auth::user()->esAdministrador()) {
+            abort(403, 'Solo el administrador puede cerrar un chat de forma forzada.');
+        }
+
+        try {
+            $this->soporteService->cerrarForzado($hch_id, Auth::id(), trim((string) $request->input('motivo')));
+
+            return back()->with('success', 'Chat cerrado de forma forzada. El motivo quedó registrado en la conversación.');
+        } catch (Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function confirmarCierre($hch_id)
     {
         try {

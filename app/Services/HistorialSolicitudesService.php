@@ -143,6 +143,11 @@ class HistorialSolicitudesService
                 ->orderByDesc('hcm_fecha')
                 ->get(),
             'esPropia' => (int) $solicitud->sol_usu_id === (int) $usuario->usu_id,
+            // Para el boton "Siguiente pendiente" del personal: revisa una
+            // ficha y salta a la siguiente de la cola sin volver al listado.
+            'siguientePendiente' => $usuario->esAdministrativo()
+                ? $solicitud->siguientePendiente()
+                : null,
         ];
     }
 

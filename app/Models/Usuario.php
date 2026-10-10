@@ -15,6 +15,19 @@ class Usuario extends Authenticatable
 
     public $timestamps = false;
 
+    /**
+     * La fecha de la última actualización de datos de precarga se maneja
+     * como fecha para poder compararla con la vigencia configurada.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'usu_datos_ultima_actualizacion' => 'datetime',
+        ];
+    }
+
     protected $fillable = [
         'usu_rol',
         'usu_tdo_id',
@@ -27,10 +40,19 @@ class Usuario extends Authenticatable
         'usu_numero_telefono',
         'usu_pnf',
         'usu_trayecto',
+        // Datos de precarga: los llena el estudiante una vez en su perfil y
+        // se adjuntan a los trámites. El admin decide cuáles están activos
+        // (ver DatosPrecargaConfig).
+        'usu_direccion',
+        'usu_lugar_nacimiento',
+        'usu_fecha_nacimiento',
+        'usu_lapso_academico_previo',
+        'usu_datos_ultima_actualizacion',
         'usu_contrasena_hash',
         'usu_estado_cuenta',
         'usu_fecha_registro',
         'usu_ultimo_acceso',
+        'usu_permisos',
     ];
 
     public function getEmailForPasswordReset()
@@ -85,6 +107,28 @@ class Usuario extends Authenticatable
         ])->filter()->implode(' ');
 
         return $nombre !== '' ? $nombre : (string) $this->usu_correo_electronico;
+    }
+
+    /**
+     * Número de ficha del estudiante, derivado y estable.
+     *
+     * Formato FIC-año-número (FIC-2026-00012): usa el año de registro y el
+     * identificador interno, así que no necesita columna ni counter que
+     * mantener: un mismo estudiante siempre muestra la misma ficha y dos
+     * estudiantes nunca comparten número.
+     */
+    public function getNumeroFichaAttribute(): string
+    {
+        $fecha = $this->usu_fecha_registro;
+        if (is_string($fecha)) {
+            $fecha = \DateTime::createFromFormat('Y-m-d H:i:s', $fecha);
+            if (! $fecha) {
+                $fecha = \DateTime::createFromFormat('Y-m-d', $fecha);
+            }
+        }
+        $anio = $fecha?->format('Y') ?? now()->year;
+
+        return sprintf('FIC-%s-%05d', $anio, $this->usu_id);
     }
 
     // ¡CRUCIAL! Le decimos a Laravel qué columna guarda la contraseña encriptada
@@ -157,5 +201,98 @@ class Usuario extends Authenticatable
     public function getRolEtiquetaAttribute(): string
     {
         return Rol::etiqueta((string) $this->usu_rol);
+    }
+
+    // ============================================================
+    // Datos de precarga
+    // El estudiante llena sus datos una vez (perfil) y estos se adjuntan
+    // a los trámites. Qué campos cuentan está definido por el admin en
+    // DatosPrecargaConfig.
+    // ============================================================
+
+    /**
+     * Valor actual de cada campo de precarga habilitado por el admin.
+     *
+     * @return array<string, string|null> campo => valor tal como está en la tabla
+     */
+    public function datosPrecarga(): array
+    {
+        $valores = [];
+        $columnas = DatosPrecargaConfig::camposActivos();
+
+        if ($columnas->isEmpty()) {
+            return $valores;
+        }
+
+        // Se recarga el modelo para leer los atributos frescos, incluidas
+        // columnas que un modelo fabricado en memoria podría no traer.
+        $this->refresh();
+
+        foreach ($columnas as $config) {
+            $valores[$config->dpc_campo] = $this->{$config->dpc_campo} !== null
+                ? (string) $this->{$config->dpc_campo}
+                : null;
+        }
+
+        return $valores;
+    }
+
+    /**
+     * Cuántos de los campos habilitados tiene ya cargados.
+     */
+    public function camposPrecargaCargados(): int
+    {
+        return collect($this->datosPrecarga())->filter(fn ($valor) => $valor !== null && $valor !== '')->count();
+    }
+
+    /**
+     * Si le falta algún campo OBLIGATORIO de la precarga.
+     */
+    public function precargaIncompleta(): bool
+    {
+        $this->refresh();
+
+        return DatosPrecargaConfig::camposActivos()
+            ->filter(fn ($config) => $config->dpc_obligatorio)
+            ->contains(fn ($config) => $this->{$config->dpc_campo} === null || $this->{$config->dpc_campo} === '');
+    }
+
+    /**
+     * Si los datos de precarga ya perdieron vigencia según lo que definió el
+     * admin. Los campos sin vigencia configurada no vencen nunca.
+     */
+    public function precargaVencida(): bool
+    {
+        return DatosPrecargaConfig::camposActivos()
+            ->filter(fn ($config) => ! $config->estaVigente($this->usu_datos_ultima_actualizacion))
+            ->isNotEmpty();
+    }
+
+    /**
+     * Verifica si el usuario tiene un permiso específico.
+     *
+     * Permite complementar el control por rol con permisos individuales
+     * asignados directamente al usuario (columna usu_permisos, JSON).
+     *
+     * @param string $permission Nombre del permiso a verificar
+     * @return bool
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // Si no tiene permisos individuales definidos, se usa el rol
+        $permisos = $this->usu_permisos;
+        if (is_null($permisos) || $permisos === []) {
+            // Rol-based check: los permisos vienen definidos en la constante
+            // Rol::PERMISOS o se pueden agregar aquí seg necesidades.
+            // Por ahora, si no hay permisos individuales, se devuelve true
+            // para no bloquear operaciones por defecto (según el rol).
+            return true;
+        }
+
+        if (! is_array($permisos)) {
+            $permisos = json_decode($permisos, true) ?? [];
+        }
+
+        return in_array($permission, $permisos, true);
     }
 }

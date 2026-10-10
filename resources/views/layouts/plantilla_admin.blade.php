@@ -192,7 +192,7 @@
 
   <footer class="footer">
     <div class="container">
-      <p>&copy; {{ now()->year }} Sistema de Solicitudes Estudiantiles — UPTP "Juan de Jesús Montilla"</p>
+      <p>&copy; {{ now()->year }} Sistema de Solicitudes Estudiantiles — UPTP "Juan de Jesús Montilla" · Sede Portuguesa</p>
     </div>
   </footer>
 

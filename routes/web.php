@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\AdminDatosEstudiantesController;
+use App\Http\Controllers\AdminDatosPrecargaController;
 use App\Http\Controllers\AdminEstadisticasController;
 use App\Http\Controllers\AdminHistorialCambioController;
 use App\Http\Controllers\AdminPreguntaFrecuenteController;
@@ -15,6 +17,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SoporteController;
+use App\Http\Controllers\UserDatosPerfilController;
 use App\Http\Controllers\UserSolicitudController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +47,9 @@ Route::middleware('auth')->prefix('user')->group(function () {
     Route::get('/dashboard', [UserSolicitudController::class, 'index'])->name('dashboard');
     Route::get('/citas', [UserSolicitudController::class, 'misCitas'])->name('user.citas');
 
+    Route::get('/datos-perfil', [UserDatosPerfilController::class, 'index'])->name('user.datos-perfil');
+    Route::post('/datos-perfil', [UserDatosPerfilController::class, 'update'])->name('user.datos-perfil.update');
+
     Route::get('/tramites', [UserSolicitudController::class, 'listarTramites'])->name('user.tramites.index');
 
     // Historial de solicitudes del estudiante. Antes era una sola pagina plana
@@ -70,6 +76,7 @@ Route::middleware('auth')->prefix('user')->group(function () {
             Route::post('/{id}/mensaje', [SoporteController::class, 'enviarMensaje'])->name('enviar');
             Route::post('/{id}/confirmar', [SoporteController::class, 'confirmarCierre'])->name('confirmar');
             Route::post('/{id}/rechazar', [SoporteController::class, 'desconfirmarCierre'])->name('rechazar');
+            Route::post('/{id}/escalar', [SoporteController::class, 'escalarChat'])->name('escalar');
         });
     });
 });
@@ -144,6 +151,23 @@ Route::middleware('admin')->prefix('admin')->group(function () {
         Route::delete('/{usuario}', [AdminUserController::class, 'destroy'])->name('destroy');
     });
 
+    // Datos de precarga del estudiante: qué campos se piden (la "versión" que
+    // el admin edita) y qué tiene cargado cada estudiante, con filtros para
+    // ubicar quién está incompleto o desactualizado. Ambos módulos son del
+    // administrador porque afectan la forma en que se reciben los trámites.
+    Route::middleware('rol:administrador')->group(function () {
+        Route::prefix('datos-precarga')->name('admin.datos-precarga.')->group(function () {
+            Route::get('/', [AdminDatosPrecargaController::class, 'index'])->name('index');
+            Route::get('/agregar', [AdminDatosPrecargaController::class, 'create'])->name('create');
+            Route::post('/', [AdminDatosPrecargaController::class, 'store'])->name('store');
+            Route::put('/{config}', [AdminDatosPrecargaController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('datos-estudiantes')->name('admin.datos-estudiantes.')->group(function () {
+            Route::get('/', [AdminDatosEstudiantesController::class, 'index'])->name('index');
+        });
+    });
+
     // ---- Los tres roles administrativos ----
 
     // Cola de solicitudes: procesar, aprobar y rechazar. Es la página de
@@ -174,5 +198,9 @@ Route::middleware('admin')->prefix('admin')->group(function () {
         // Con guion, igual que admin.tipos-solicitud.alternar-estado: era el
         // único nombre de ruta con guion bajo y se colaba con la referencia.
         Route::post('/{id}/proponer-cierre', [SoporteController::class, 'proponerCierre'])->name('proponer-cierre');
+        Route::post('/{id}/escalar', [SoporteController::class, 'escalarChat'])->name('escalar');
+        Route::post('/{id}/aprobar-escalado', [SoporteController::class, 'aprobarEscalado'])->name('aprobar-escalado');
+        Route::post('/{id}/rechazar-escalado', [SoporteController::class, 'rechazarEscalado'])->name('rechazar-escalado');
+        Route::post('/{id}/cerrar-forzado', [SoporteController::class, 'cerrarForzado'])->name('cerrar-forzado');
     });
 });

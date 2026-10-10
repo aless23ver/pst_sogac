@@ -18,6 +18,7 @@
             <h1 class="pagina-head__titulo">
                 Consulta #{{ $hilo->hch_id }}
                 <span class="chip {{ $hilo->estado_chip }}">{{ $hilo->estado_etiqueta }}</span>
+                <span class="chip chip--neutro" title="Nivel de atención del chat">Nivel: {{ $hilo->nivel_etiqueta }}</span>
             </h1>
             <p class="pagina-head__desc">
                 {{ $hilo->usuario->usu_primer_nombre ?? 'Usuario' }}
@@ -33,6 +34,22 @@
             <a href="{{ route('admin.chat.index') }}" class="btn btn--ghost">Volver a la bandeja</a>
         </div>
     </div>
+
+    {{-- Escalado y cierre forzado --}}
+    @if ($hilo->hch_estado !== 'cerrado' && $hilo->hch_estado !== 'pendiente_cierre')
+        <div class="alert alert--warning">
+            @if ($hilo->puedeEscalar())
+                <form action="{{ route('admin.chat.escalar', $hilo->hch_id) }}" method="POST" style="margin: 0;">
+                    @csrf
+                    ¿La consulta excede tu nivel de atención?
+                    <button type="submit" class="btn btn--sm" style="margin-left: 8px;">Escalar a nivel superior</button>
+                    <span style="color: var(--gray-500);">Pasa de {{ strtolower($hilo->nivel_etiqueta) }} al siguiente rol y vuelve a la bandeja.</span>
+                </form>
+            @else
+                Este chat ya está en el nivel más alto (administrador): no puede escalar más.
+            @endif
+        </div>
+    @endif
 
     <div class="chat-panel">
         {{-- Conversación --}}
@@ -135,6 +152,32 @@
                         @endif
                     </p>
                 </div>
+            @endif
+
+            {{-- Cierre forzado por conducta inadecuada: solo administrador.
+                 Cierra sin esperar la confirmación del estudiante y deja el
+                 motivo como mensaje en la conversación. --}}
+            @if (Auth::user()->esAdministrador() && $hilo->hch_estado !== 'cerrado')
+                <details class="card card--plana" style="margin-top: 16px;">
+                    <summary class="card__title" style="cursor: pointer;">Cierre forzado (conducta inadecuada)</summary>
+                    <p class="card__sub" style="margin: 12px 0 16px;">
+                        Cierra la consulta sin esperar la confirmación del estudiante y deja el motivo como
+                        constancia en la conversación. Úsalo solo ante conducta inadecuada o abuso del chat.
+                    </p>
+
+                    <form action="{{ route('admin.chat.cerrar-forzado', $hilo->hch_id) }}" method="POST" class="form"
+                          onsubmit="return confirm('¿Cerrar de forma FORZADA esta consulta? El motivo quedará registrado.');">
+                        @csrf
+
+                        <div class="field">
+                            <label for="motivo">Motivo <span class="req">*</span></label>
+                            <textarea name="motivo" id="motivo" rows="3" required maxlength="500"
+                                      placeholder="Describe la conducta que justifica el cierre…">{{ old('motivo') }}</textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn--danger btn--block">Cerrar de forma forzada</button>
+                    </form>
+                </details>
             @endif
         </div>
     </div>

@@ -72,6 +72,10 @@ class HistorialCambio extends Model
         'Requisito' => ['singular' => 'Requisito', 'plural' => 'Requisitos'],
         'PreguntasFrecuentes' => ['singular' => 'Pregunta frecuente', 'plural' => 'Preguntas frecuentes'],
         'HiloChat' => ['singular' => 'Chat de soporte', 'plural' => 'Chats de soporte'],
+        // Datos de precarga: el estudiante actualiza su perfil y el admin
+        // ajusta qué campos se piden (DatosPrecargaConfig).
+        'Usuario' => ['singular' => 'Datos de estudiante', 'plural' => 'Datos de estudiantes'],
+        'DatosPrecargaConfig' => ['singular' => 'Campo de precarga', 'plural' => 'Configuración de precarga'],
     ];
 
     /**

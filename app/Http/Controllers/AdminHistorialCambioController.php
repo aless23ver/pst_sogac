@@ -55,6 +55,12 @@ class AdminHistorialCambioController extends Controller
             // BOM para que Excel reconozca el UTF-8 y muestre bien los acentos.
             fwrite($salida, "\xEF\xBB\xBF");
 
+            // Membrete institucional: la primera fila identifica de dónde sale
+            // el reporte, útil al imprimirlo o adjuntarlo a un expediente.
+            fputcsv($salida, ['UPTP "Juan de Jesús Montilla" · Sede Portuguesa']);
+            fputcsv($salida, ['Bitácora de cambios — generado el '.now()->format('d/m/Y H:i')]);
+            fputcsv($salida, []);
+
             fputcsv($salida, ['Fecha', 'Autor', 'Rol', 'Entidad', 'Registro', 'Acción', 'Resumen', 'Campo', 'Valor anterior', 'Valor nuevo', 'Origen', 'IP']);
             fputcsv($salida, []);
 

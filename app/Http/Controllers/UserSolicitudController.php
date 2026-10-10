@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cita;
+use App\Models\DatosPrecargaConfig;
 use App\Models\EstadoSolicitud;
 use App\Models\LapsoAcademico;
 use App\Models\Solicitud;
@@ -74,6 +75,10 @@ class UserSolicitudController extends Controller
 
     /**
      * Formulario para solicitar un trámite específico.
+     *
+     * Lleva además los datos de precarga del estudiante: los que ya cargó en
+     * su perfil y se adjuntarán a la solicitud. Si le falta alguno
+     * obligatorio, o ya vencieron, el aviso se lo recuerda antes de enviar.
      */
     public function create($id)
     {
@@ -83,7 +88,40 @@ class UserSolicitudController extends Controller
             return redirect()->route('dashboard')->with('error', 'Este trámite ya no está disponible.');
         }
 
-        return view('user.solicitar', compact('tramite'));
+        $usuario = Auth::user();
+
+        // Una sola consulta de configuración para todo el formulario: qué
+        // datos se adjuntarán, cuáles faltan y si siguen vigentes.
+        $campos = DatosPrecargaConfig::camposActivos();
+
+        $datosPrecarga = [];
+        foreach ($campos as $config) {
+            $valor = $usuario->{$config->dpc_campo};
+            $datosPrecarga[$config->dpc_campo] = $valor !== null && $valor !== '' ? (string) $valor : null;
+        }
+
+        $faltanObligatorios = $campos
+            ->filter(fn ($config) => $config->dpc_obligatorio)
+            ->filter(fn ($config) => ($datosPrecarga[$config->dpc_campo] ?? null) === null)
+            ->values();
+
+        // La vigencia se mide con el campo que más dura: si el más laxo ya
+        // venció, los demás también.
+        $mesesVigencia = $campos
+            ->filter(fn ($config) => $config->dpc_vigencia_meses !== null)
+            ->min('dpc_vigencia_meses');
+
+        $precargaVencida = $mesesVigencia !== null
+            && ($usuario->usu_datos_ultima_actualizacion === null
+                || $usuario->usu_datos_ultima_actualizacion->lt(now()->subMonths((int) $mesesVigencia)));
+
+        return view('user.solicitar', [
+            'tramite' => $tramite,
+            'datosPrecarga' => $datosPrecarga,
+            'camposPrecarga' => $campos,
+            'faltanObligatorios' => $faltanObligatorios,
+            'precargaVencida' => $precargaVencida,
+        ]);
     }
 
     /**
