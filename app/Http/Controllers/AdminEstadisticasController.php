@@ -52,6 +52,11 @@ class AdminEstadisticasController extends Controller
             // BOM para que Excel reconozca el UTF-8 y muestre bien los acentos.
             fwrite($salida, "\xEF\xBB\xBF");
 
+            // Membrete institucional en la primera fila del reporte.
+            fputcsv($salida, ['UPTP "Juan de Jesús Montilla" · Sede Portuguesa']);
+            fputcsv($salida, ['Estadísticas de solicitudes — generado el '.now()->format('d/m/Y H:i')]);
+            fputcsv($salida, []);
+
             $seccion = function (string $titulo, array $filas) use ($salida): void {
                 fputcsv($salida, [$titulo]);
                 foreach ($filas as $fila) {

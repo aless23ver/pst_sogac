@@ -76,6 +76,7 @@ Route::middleware('auth')->prefix('user')->group(function () {
             Route::post('/{id}/mensaje', [SoporteController::class, 'enviarMensaje'])->name('enviar');
             Route::post('/{id}/confirmar', [SoporteController::class, 'confirmarCierre'])->name('confirmar');
             Route::post('/{id}/rechazar', [SoporteController::class, 'desconfirmarCierre'])->name('rechazar');
+            Route::post('/{id}/escalar', [SoporteController::class, 'escalarChat'])->name('escalar');
         });
     });
 });
@@ -197,5 +198,9 @@ Route::middleware('admin')->prefix('admin')->group(function () {
         // Con guion, igual que admin.tipos-solicitud.alternar-estado: era el
         // único nombre de ruta con guion bajo y se colaba con la referencia.
         Route::post('/{id}/proponer-cierre', [SoporteController::class, 'proponerCierre'])->name('proponer-cierre');
+        Route::post('/{id}/escalar', [SoporteController::class, 'escalarChat'])->name('escalar');
+        Route::post('/{id}/aprobar-escalado', [SoporteController::class, 'aprobarEscalado'])->name('aprobar-escalado');
+        Route::post('/{id}/rechazar-escalado', [SoporteController::class, 'rechazarEscalado'])->name('rechazar-escalado');
+        Route::post('/{id}/cerrar-forzado', [SoporteController::class, 'cerrarForzado'])->name('cerrar-forzado');
     });
 });

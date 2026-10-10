@@ -82,6 +82,154 @@ class SoporteService
         return $hilo;
     }
 
+    /**
+     * Sube el chat un nivel de atención y lo devuelve a la bandeja como
+     * pendiente.
+     *
+     * Puede pedirlo el estudiante (necesita hablar con alguien más arriba) o
+     * el personal que lo atiende (no puede resolverlo). Al escalar se libera
+     * al administrador asignado: los roles de nivel inferior dejan de ver el
+     * chat y lo reclama uno del nivel nuevo o superior.
+     *
+     * **Nuevo flujo**: el escalado queda en estado "pending_escalation"
+     * y requiere aprobación del administrador antes de aplicarse.
+     */
+    public function escalarChat($hiloId, ?int $actorId, bool $loPideElEstudiante)
+    {
+        $hilo = HiloChat::findOrFail($hiloId);
+
+        if ($hilo->hch_estado === 'cerrado') {
+            throw new Exception('Este chat ya está cerrado: no se puede escalar.');
+        }
+
+        if ($hilo->hch_estado === 'pending_escalation') {
+            throw new Exception('Este chat ya está pendiente de aprobación de escalado.');
+        }
+
+        if (! $hilo->puedeSolicitarEscalarPor($loPideElEstudiante ? 'estudiante' : 'personal')) {
+            throw new Exception('No puedes solicitar el escalado de este chat en su estado actual.');
+        }
+
+        // Pone el chat en estado de escalado pendiente de aprobación.
+        // El nivel actual se conserva y el admin decidirá subir o no.
+        return DB::transaction(function () use ($hilo, $actorId, $loPideElEstudiante) {
+            $hilo->update([
+                'hch_estado' => 'pending_escalation',
+            ]);
+
+            // Registra la solicitud de escalado dentro del chat, para que el
+            // administrador vea de quién viene y en qué nivel estaba.
+            MensajeChat::create([
+                'mch_id_hilo' => $hilo->hch_id,
+                'mch_id_remitente' => $actorId,
+                'mch_cuerpo' => $loPideElEstudiante
+                    ? 'Solicitud de escalado: el estudiante quiere hablar con alguien más arriba (actualmente en nivel '
+                        .$hilo->nivel_etiqueta.').'
+                    : 'Solicitud de escalado: el personal deriva esta consulta al siguiente nivel (actualmente en nivel '
+                        .$hilo->nivel_etiqueta.').',
+            ]);
+
+            return $hilo;
+        });
+    }
+
+    /**
+     * Cierre forzado por conducta inadecuada: lo aplica el administrador sin
+     * la confirmación del estudiante y deja el motivo como mensaje dentro
+     * del chat, para que quede constancia de por qué se cerró.
+     */
+    public function cerrarForzado($hiloId, int $adminId, string $motivo)
+    {
+        $hilo = HiloChat::findOrFail($hiloId);
+
+        if ($hilo->hch_estado === 'cerrado') {
+            throw new Exception('Este chat ya está cerrado.');
+        }
+
+        return DB::transaction(function () use ($hilo, $adminId, $motivo) {
+            $hilo->update([
+                'hch_estado' => 'cerrado',
+                'hch_id_admin' => $hilo->hch_id_admin ?? $adminId,
+                'hch_etiqueta_tema' => 'Cierre forzado',
+                'hch_fecha_solicitud_cierre' => now(),
+            ]);
+
+            MensajeChat::create([
+                'mch_id_hilo' => $hilo->hch_id,
+                'mch_id_remitente' => $adminId,
+                'mch_cuerpo' => 'La coordinación cerró esta consulta por conducta inadecuada. Motivo: '.$motivo,
+            ]);
+
+            return $hilo;
+        });
+    }
+
+    /**
+     * Aplica la escalación aprobada por el administrador.
+     *
+     * Sube el nivel en uno, cambia el estado a 'pendiente' y libera al
+     * administrador asignado, para que el chat quede en la bandeja del
+     * nuevo nivel.
+     */
+    public function aprobarEscalado($hiloId, int $adminId)
+    {
+        $hilo = HiloChat::findOrFail($hiloId);
+
+        if ($hilo->hch_estado !== 'pending_escalation') {
+            throw new Exception('Este chat no está pendiente de aprobación de escalado.');
+        }
+
+        if ($hilo->puedeEscalar()) {
+            throw new Exception('Este chat ya puede escalarse: no está en estado de pending_escalation.');
+        }
+
+        $nivelAnterior = $hilo->hch_nivel_atencion;
+
+        return DB::transaction(function () use ($hilo, $adminId, $nivelAnterior) {
+            $hilo->update([
+                'hch_nivel_atencion' => $nivelAnterior + 1,
+                'hch_estado' => 'pendiente',
+                'hch_id_admin' => null,
+            ]);
+
+            // La aprobación y nuevo nivel quedan registradas en el chat.
+            MensajeChat::create([
+                'mch_id_hilo' => $hilo->hch_id,
+                'mch_id_remitente' => $adminId,
+                'mch_cuerpo' => 'Escalado aprobado por la coordinación: sube de nivel '.(self::NIVELES_ATENCION[$nivelAnterior] ?? $nivelAnterior).' a '
+                    .(self::NIVELES_ATENCION[$hilo->hch_nivel_atencion] ?? $hilo->hch_nivel_atencion).'.',
+            ]);
+
+            return $hilo;
+        });
+    }
+
+    /**
+     * Rechaza la solicitud de escalado y restaura el chat a su estado anterior.
+     */
+    public function rechazarEscalado($hiloId, int $adminId, string $motivo)
+    {
+        $hilo = HiloChat::findOrFail($hiloId);
+
+        if ($hilo->hch_estado !== 'pending_escalation') {
+            throw new Exception('Este chat no está pendiente de aprobación de escalado.');
+        }
+
+        return DB::transaction(function () use ($hilo, $adminId, $motivo) {
+            $hilo->update([
+                'hch_estado' => 'pendiente',
+            ]);
+
+            MensajeChat::create([
+                'mch_id_hilo' => $hilo->hch_id,
+                'mch_id_remitente' => $adminId,
+                'mch_cuerpo' => 'Solicitud de escalado rechazada por la coordinación. Motivo: '.$motivo,
+            ]);
+
+            return $hilo;
+        });
+    }
+
     public function proponerCierre($hiloId, $adminId, $etiqueta)
     {
         $hilo = HiloChat::findOrFail($hiloId);
@@ -150,8 +298,14 @@ class SoporteService
         ];
 
         if ($usuario->esAdministrativo()) {
+            // Cada rol ve los pendientes de SU nivel o inferiores: los chats
+            // nuevos (nivel 1) los puede reclamar cualquiera de la cola, pero
+            // uno escalado a analista (2) ya no aparece para el taquillero.
+            $nivelMaximo = HiloChat::nivelRequeridoPorRol($usuario->usu_rol);
+
             $estado['hilosPendientes'] = HiloChat::with('usuario')
                 ->where('hch_estado', 'pendiente')
+                ->where('hch_nivel_atencion', '<=', $nivelMaximo)
                 ->orderBy('created_at', 'asc')
                 ->get();
 

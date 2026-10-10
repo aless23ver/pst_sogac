@@ -73,6 +73,9 @@
 
                                 <td>
                                     <span class="chip {{ $hilo->estado_chip }}">{{ $hilo->estado_etiqueta }}</span>
+                                    <div style="font-size: 0.8rem; color: var(--gray-400); margin-top: 4px;">
+                                        Nivel: {{ $hilo->nivel_etiqueta }}
+                                    </div>
                                 </td>
 
                                 <td class="table__acciones">

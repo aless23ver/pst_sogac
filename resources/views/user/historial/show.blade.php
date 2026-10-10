@@ -40,6 +40,16 @@
             <span class="badge badge--{{ $estado }}" style="font-size: 0.9rem; padding: 8px 16px;">
                 {{ ucfirst($estado) }}
             </span>
+
+            {{-- Revisión continua: el personal salta a la siguiente pendiente
+                 de la cola sin volver al listado. --}}
+            @if ($esPropia === false && $siguientePendiente)
+                <a href="{{ route('user.historial.show', $siguientePendiente->sol_id) }}" class="btn btn--primary">
+                    Siguiente pendiente
+                    <span style="opacity: 0.8;">({{ $siguientePendiente->sol_id_seguimiento }})</span>
+                </a>
+            @endif
+
             <a href="{{ route('user.historial.index') }}" class="btn btn--ghost">Volver al historial</a>
         </div>
     </div>
@@ -103,6 +113,15 @@
                     </dd>
                 </div>
             </dl>
+
+            <div class="panel__hint" style="margin-top: 18px;">
+                <p class="panel__hint-titulo">Ficha del estudiante</p>
+                <p class="panel__hint-texto">
+                    Número de ficha: <strong>{{ $solicitud->usuario?->numero_ficha ?? '—' }}</strong>
+                    · Carrera/PNF: {{ $solicitud->usuario?->usu_pnf ?: 'sin asignar' }}
+                    · Trayecto: {{ $solicitud->usuario?->usu_trayecto ?: 'sin asignar' }}
+                </p>
+            </div>
 
             <div class="panel__hint" style="margin-top: 18px;">
                 <p class="panel__hint-titulo">Motivo que enviaste</p>

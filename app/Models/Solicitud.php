@@ -80,6 +80,25 @@ class Solicitud extends Model
     }
 
     /**
+     * Siguiente solicitud pendiente de la cola, para la revisión continua
+     * del administrador.
+     *
+     * La cola se atiende FIFO (la más antigua primero), así que "siguiente"
+     * es la pendiente más antigua que no sea la actual: cuando se resuelve
+     * una, el botón lleva a la que ahora encabeza la fila.
+     */
+    public function siguientePendiente(): ?self
+    {
+        $idPendiente = EstadoSolicitud::where('eso_nombre_estado', 'pendiente')->value('eso_id');
+
+        return self::query()
+            ->where('sol_eso_id', $idPendiente)
+            ->where('sol_id', '!=', $this->sol_id)
+            ->orderBy('sol_fecha_creacion')
+            ->first();
+    }
+
+    /**
      * Bitacora de cambios de esta solicitud: altas, ediciones y cambios de
      * estado. La genera el trait RegistraCambios, asi que aqui solo se declara
      * el enlace para poder leerla.

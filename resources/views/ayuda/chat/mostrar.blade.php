@@ -24,7 +24,7 @@
                 @if ($hilo->admin)
                     La atiende {{ $hilo->admin->usu_primer_nombre }} {{ $hilo->admin->usu_primer_apellido }}.
                 @else
-                    Aún no hay un administrador asignado.
+                    Espera atención de nivel <strong>{{ $hilo->nivel_etiqueta }}</strong>.
                 @endif
             </p>
         </div>
@@ -33,6 +33,19 @@
             <a href="{{ route('user.ayuda.chat.index') }}" class="btn btn--ghost">Volver al chat</a>
         </div>
     </div>
+
+    {{-- Escalado: si la atención actual no basta, el estudiante puede pedir
+         que la consulta suba al siguiente nivel (analista o administrador). --}}
+    @if ($hilo->puedeEscalar() && in_array($hilo->hch_estado, ['pendiente', 'activo']))
+        <div class="alert alert--info">
+            <form action="{{ route('user.ayuda.chat.escalar', $hilo->hch_id) }}" method="POST" style="margin: 0;">
+                @csrf
+                ¿Necesitas hablar con alguien más arriba?
+                <button type="submit" class="btn btn--sm" style="margin-left: 8px;">Solicitar nivel superior</button>
+                <span style="color: var(--gray-500);">Actualmente en nivel {{ strtolower($hilo->nivel_etiqueta) }}.</span>
+            </form>
+        </div>
+    @endif
 
     <div class="card">
         @include('partials.chat.mensajes', ['hilo' => $hilo])

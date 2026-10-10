@@ -23,12 +23,15 @@
     $esAdminOAnalista = $usuario?->esAdministrador() || $usuario?->esAnalista();
 
     // Pendientes del chat, para el contador del menu. El personal tiene
-    // delante las consultas que NADIE ha reclamado todavia; el estudiante, su
-    // propia consulta en curso. Son dos preguntas distintas y por eso dos
-    // consultas distintas, no un unico 'where' con un rol adentro.
+    // delante las consultas que puede ATENDER segun su nivel (un chat
+    // escalado a analista ya no cuenta para el taquillero); el estudiante,
+    // su propia consulta en curso. Son dos preguntas distintas y por eso
+    // dos consultas distintas, no un unico 'where' con un rol adentro.
     $pendientesChat = $usuario
         ? ($usuario->esAdministrativo()
-            ? HiloChat::where('hch_estado', 'pendiente')->count()
+            ? HiloChat::where('hch_estado', 'pendiente')
+                ->where('hch_nivel_atencion', '<=', HiloChat::nivelRequeridoPorRol($usuario->usu_rol))
+                ->count()
             : HiloChat::where('hch_id_usuario', $usuario->usu_id)
                 ->whereIn('hch_estado', ['pendiente', 'activo', 'pendiente_cierre'])
                 ->count())

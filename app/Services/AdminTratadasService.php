@@ -200,6 +200,9 @@ class AdminTratadasService
             'tiempoResolucion' => $tiempoResolucion,
             'primerResponsable' => $primerResponsable,
             'ultimaObservacion' => $ultimaObservacion,
+            // Para el boton "Siguiente pendiente": revisar las fichas en
+            // cadena sin volver al listado.
+            'siguientePendiente' => $solicitud->siguientePendiente(),
         ];
     }
 

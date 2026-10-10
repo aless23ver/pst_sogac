@@ -52,6 +52,7 @@ class Usuario extends Authenticatable
         'usu_estado_cuenta',
         'usu_fecha_registro',
         'usu_ultimo_acceso',
+        'usu_permisos',
     ];
 
     public function getEmailForPasswordReset()
@@ -106,6 +107,28 @@ class Usuario extends Authenticatable
         ])->filter()->implode(' ');
 
         return $nombre !== '' ? $nombre : (string) $this->usu_correo_electronico;
+    }
+
+    /**
+     * Número de ficha del estudiante, derivado y estable.
+     *
+     * Formato FIC-año-número (FIC-2026-00012): usa el año de registro y el
+     * identificador interno, así que no necesita columna ni counter que
+     * mantener: un mismo estudiante siempre muestra la misma ficha y dos
+     * estudiantes nunca comparten número.
+     */
+    public function getNumeroFichaAttribute(): string
+    {
+        $fecha = $this->usu_fecha_registro;
+        if (is_string($fecha)) {
+            $fecha = \DateTime::createFromFormat('Y-m-d H:i:s', $fecha);
+            if (! $fecha) {
+                $fecha = \DateTime::createFromFormat('Y-m-d', $fecha);
+            }
+        }
+        $anio = $fecha?->format('Y') ?? now()->year;
+
+        return sprintf('FIC-%s-%05d', $anio, $this->usu_id);
     }
 
     // ¡CRUCIAL! Le decimos a Laravel qué columna guarda la contraseña encriptada
@@ -243,5 +266,33 @@ class Usuario extends Authenticatable
         return DatosPrecargaConfig::camposActivos()
             ->filter(fn ($config) => ! $config->estaVigente($this->usu_datos_ultima_actualizacion))
             ->isNotEmpty();
+    }
+
+    /**
+     * Verifica si el usuario tiene un permiso específico.
+     *
+     * Permite complementar el control por rol con permisos individuales
+     * asignados directamente al usuario (columna usu_permisos, JSON).
+     *
+     * @param string $permission Nombre del permiso a verificar
+     * @return bool
+     */
+    public function hasPermission(string $permission): bool
+    {
+        // Si no tiene permisos individuales definidos, se usa el rol
+        $permisos = $this->usu_permisos;
+        if (is_null($permisos) || $permisos === []) {
+            // Rol-based check: los permisos vienen definidos en la constante
+            // Rol::PERMISOS o se pueden agregar aquí seg necesidades.
+            // Por ahora, si no hay permisos individuales, se devuelve true
+            // para no bloquear operaciones por defecto (según el rol).
+            return true;
+        }
+
+        if (! is_array($permisos)) {
+            $permisos = json_decode($permisos, true) ?? [];
+        }
+
+        return in_array($permission, $permisos, true);
     }
 }

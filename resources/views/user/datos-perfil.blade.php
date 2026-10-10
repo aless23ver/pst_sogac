@@ -51,6 +51,19 @@
 
             <div class="form__row" style="margin-top: 16px;">
                 <div class="field">
+                    <label>Número de ficha</label>
+                    <input type="text" value="{{ $usuario->numero_ficha }}" disabled>
+                    <span class="field__hint">Lo genera el sistema: identifícate con él en las oficinas.</span>
+                </div>
+                <div class="field">
+                    <label>Carrera / PNF y trayecto</label>
+                    <input type="text" value="{{ trim(($usuario->usu_pnf ?: 'Sin PNF asignado').' · '.($usuario->usu_trayecto ?: 'sin trayecto')) }}" disabled>
+                    <span class="field__hint">Los asigna la coordinación: si están mal, escribe por el chat.</span>
+                </div>
+            </div>
+
+            <div class="form__row">
+                <div class="field">
                     <label for="usu_primer_nombre">Primer nombre</label>
                     <input type="text" id="usu_primer_nombre" name="usu_primer_nombre" required
                            maxlength="50" value="{{ old('usu_primer_nombre', $usuario->usu_primer_nombre) }}">
